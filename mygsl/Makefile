@@ -1,4 +1,4 @@
-CC = mpiCC.lam
+CC = mpiCC
 CCOPT = -c -DNDEBUG -O3 -funroll-loops -I ../common_lib
 
 mygsl: myblas.o mygsl.o
