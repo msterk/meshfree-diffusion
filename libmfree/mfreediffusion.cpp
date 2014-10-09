@@ -42,7 +42,7 @@ void CMFreeDiffusion::exportNodes(char *filename) const
 	char filename_m[1000], varName[100];
 	sprintf(filename_m, "s_%s.m", filename);
 	FILE *f = fopen(filename_m, "w");
-	char *domainStruct = "domain";
+	const char *domainStruct = "domain";
 	fprintf(f, "clear %s;\nglobal %s;\n", domainStruct, domainStruct);
 	sprintf(varName, "%s.nodes", domainStruct);
 	nodesTable.writeToMFile(f, varName);

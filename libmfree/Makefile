@@ -1,4 +1,4 @@
-CC = mpiCC.lam
+CC = mpiCC
 CCOPT = -c -DNDEBUG -O3 -funroll-loops -I ../common_lib
 
 libmfree: mfreediffusion.o nodes.o sparsematrix.o
