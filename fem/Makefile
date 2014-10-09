@@ -1,4 +1,4 @@
-CC = mpiCC.lam
+CC = mpiCC
 CCOPT = -c -DNDEBUG -O3 -funroll-loops -I ../common_lib
 LINKOPT = -L ../common_lib -L ../libmfree -L /usr/lib/mpich/lib
 LIBRARIES = -lcommon_lib -llibmfree -lmpich -lm

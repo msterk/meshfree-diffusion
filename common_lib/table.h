@@ -6,7 +6,7 @@
 
 //uncomment the first to disable, second to enable tracing messages
 //#define LOGMESSAGE(operation, other, numBytes) ;
-#define LOGMESSAGE(operation, other, numBytes) if (loadDist->getRank() == 0) printf("Process %3d %13s %3d msg of %8d bytes.\n", loadDist->getRank(), operation, other, numBytes)
+#define LOGMESSAGE(operation, other, numBytes) if (loadDist->getRank() == 0) printf("Process %3d %13s %3d msg of %8ld bytes.\n", loadDist->getRank(), operation, other, (long)numBytes)
 
 namespace CommonLib
 {

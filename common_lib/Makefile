@@ -1,4 +1,4 @@
-CC = mpiCC.lam -I .
+CC = mpiCC -I .
 CCOPT = -c -O3 -funroll-loops
 
 common_lib: inifiler.o averager.o common_lib.o table.o
