@@ -205,7 +205,6 @@ protected:
 			supDomain.emptyTable();
 			nodesTree.findNodesInCircle(point, supDomainDiameter, supDomain);
 			maxR = mmax(maxR, supDomainDiameter);
-			printf("max %lf\n", maxR);
 			return supDomainDiameter;
 		}
 	}
