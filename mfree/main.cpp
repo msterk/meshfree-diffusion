@@ -187,8 +187,12 @@ int main(int argc, char **argv)
 		if (!options.constSupNodeCount())
 			mfreeDiffusion.copyAvgDistMeshFrom(*sampleMfreeDiffusion); //the cheating part
 
-		if (myRank == 0)
+		if (myRank == 0) {
 			mfreeDiffusion.createNodes();
+			if ((reps == 0) && (argv[1][0] != '-')) {
+					mfreeDiffusion.exportNodes(argv[1]);
+			}
+		}
 
 		if (numProcs == 1)
 			mfreeDiffusion.prepareNodeTree();
@@ -202,10 +206,9 @@ int main(int argc, char **argv)
 
 		mfreeDiffusion.constructSystem();
 		MPI_Barrier(MPI_COMM_WORLD);
-		if (myRank == 0)
-			mfreeDiffusion.exportNodes(argv[1]);
 
-		mfreeDiffusion.exportSystem(argv[1]);
+		if ((reps == 0) && (argv[1][0] != '-'))
+			mfreeDiffusion.exportSystem(argv[1]);
 		//exportSystem se sesuje z 1d distr., 400 nodi in 32 procesi!
 	}
 	double end = MPI_Wtime();
