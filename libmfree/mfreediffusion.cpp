@@ -583,12 +583,12 @@ void CMFreeDiffusion::constructSystem()
 	B.initialize(numNodes, totalNumNodes, 40); //of those, numNodes lines will be allocated locally
 
 	// MD: debugging
-	supDomains.resize(numNodes);
+	// supDomains.resize(numNodes);
 
 	for (int node = 0; node < numNodes; node++)
 	{
 		// MD: debugging, create 9 quadrature points for each node
-		supDomains[node].resize(gaussQuad.numQuadPoints);
+		// supDomains[node].resize(gaussQuad.numQuadPoints);
 		
 		//for each node that is stored in this process:
 
@@ -765,7 +765,7 @@ void CMFreeDiffusion::constructSystem()
 						else
 							supDomainDiameter = getSupDomain(quadPoint, supDomain);
 						//coutSupDomain_m("line1", node, quadraturePointIndex1, supDomain, supDomainDiameter);
-						supDomains[node][iy] = supDomain;
+						// supDomains[node][iy] = supDomain;
 						
 						assert(supDomain.getNumElems() <= MAX_SUP_DOMAIN_COUNT);
 
