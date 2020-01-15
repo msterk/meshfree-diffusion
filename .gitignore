@@ -28,3 +28,11 @@
 *.app
 /mfre
 /fe
+mfree/mfre
+/fem/fe
+
+
+# text files and octave scripts
+mfree/*.txt
+*.txt
+*.m

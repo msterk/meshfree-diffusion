@@ -71,10 +71,15 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	// MD: this was checked to make sure processes are distributed according to the order defined in hostfile
+	//std::cout << myRank << "=" << myName << "\n";
+
 	if (myRank == 0)
 	{
 		//the root process parses the parameters
-		for (int op = 2; op < argc; op++)
+		for (int op = 2; op < argc; op++) {
+//			std::cout << "######\n op=" << op << ", arg=" << argv[op] << "\n######\n";
+
 			switch(tolower(argv[op][0]))
 			{
 			case 'n':
@@ -141,6 +146,7 @@ int main(int argc, char **argv)
 				std::cerr << "Invalid option.\n";
 				break;
 			}
+		}
 		if (numProcs == 1 && options.dataDistrType != mfree::MFreeOptions::DataDistrHierarchical)
 		{
 			std::cerr << "Running on just 1 process requires hierarchical distribution!\n";
@@ -158,7 +164,7 @@ int main(int argc, char **argv)
 	CommonLib::commBroadcast(options); 
 	if (options.verboseLevel >= 2)
 	{
-		fprintf(stderr,"Process %d on %s\n", myRank, myName);
+		fprintf(stderr,"Process %3d on %10s\n", myRank, myName);
 		fflush(stderr);
 	}
 
@@ -183,9 +189,11 @@ int main(int argc, char **argv)
 	for (reps = 0; (options.numRepetitions < 0 && (reps < 2 || MPI_Wtime()-start < (-options.numRepetitions)))
 			|| (options.numRepetitions > 0 && reps < options.numRepetitions); reps++)
 	{	
+		double t1 = MPI_Wtime();
 		mfree::CMFreeDiffusion mfreeDiffusion(options, myRank, numProcs);
 		if (!options.constSupNodeCount())
 			mfreeDiffusion.copyAvgDistMeshFrom(*sampleMfreeDiffusion); //the cheating part
+		double t2 = MPI_Wtime();
 
 		if (myRank == 0) {
 			mfreeDiffusion.createNodes();
@@ -194,6 +202,7 @@ int main(int argc, char **argv)
 			}
 		}
 
+		double t3 = MPI_Wtime();
 		if (numProcs == 1)
 			mfreeDiffusion.prepareNodeTree();
 		else {
@@ -204,7 +213,14 @@ int main(int argc, char **argv)
 
 		numNodes = mfreeDiffusion.getNumNodes();
 
+		double t4 = MPI_Wtime();
 		mfreeDiffusion.constructSystem();
+		double t5 = MPI_Wtime();
+		
+		if (options.verboseLevel >= 2) {
+			fprintf(stderr,"Process %3d finished repetition #%d in %.2f+%.2f+%.2f+%.2f s\n", myRank, reps, t2-t1, t3-t2, t4-t3, t5-t4);
+			fflush(stderr);
+		}
 		MPI_Barrier(MPI_COMM_WORLD);
 
 		if ((reps == 0) && (argv[1][0] != '-'))

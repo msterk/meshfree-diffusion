@@ -1,5 +1,6 @@
 CC = mpiCC
-CCOPT = -c -DNDEBUG -O3 -funroll-loops -I ../common_lib
+# MD: added optimization options:
+CCOPT = -c -DNDEBUG -O3 -funroll-loops -I ../common_lib    -march=native
 
 mygsl: myblas.o mygsl.o
 	ar rc libmygsl.a myblas.o mygsl.o

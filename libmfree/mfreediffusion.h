@@ -6,6 +6,7 @@
 #include "sparsematrix.h"
 #include <math.h>
 #include <common_lib.h>
+#include <vector>
 
 namespace mfree
 {
@@ -180,6 +181,9 @@ protected:
 								//during parallel construction of system, each process will allocate space for full
 								//vector fstar, but will only put values into components of fstar corresponding to
 								//its own nodes; components of fstar corresponding to other nodes will be NaN
+								
+	// MD: debug variables for debugging support domain allocation
+	std::vector<std::vector<CNodeTable> > supDomains;
 
 	double getSupDomain(const CPoint &point, CNodeTable &supDomain) const
 	//finds nodes in the support domain of given point among all nodes in nodesTree

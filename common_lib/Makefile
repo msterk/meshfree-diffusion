@@ -1,5 +1,6 @@
 CC = mpiCC -I .
-CCOPT = -c -O3 -funroll-loops
+# MD: added optimization options
+CCOPT = -c -O3 -funroll-loops   -march=native
 
 common_lib: inifiler.o averager.o common_lib.o table.o
 	ar rc libcommon_lib.a averager.o common_lib.o inifiler.o table.o

@@ -1,9 +1,9 @@
 CC = mpiCC
-CCOPT = -c -DNDEBUG -O3 -funroll-loops -I ../common_lib
+# MD added optimization options
+CCOPT = -c -DNDEBUG -O3 -funroll-loops -I ../common_lib    -march=native
 
-libmfree: mfreediffusion.o nodes.o sparsematrix.o
+liblibmfree.a: mfreediffusion.o nodes.o sparsematrix.o
 	ar rc liblibmfree.a mfreediffusion.o nodes.o sparsematrix.o
-	rm -f *.o
 	ranlib liblibmfree.a
 	
 mfreediffusion.o: mfreediffusion.h mfreediffusion.cpp base.h libmfree.h nodes.h sparsematrix.h

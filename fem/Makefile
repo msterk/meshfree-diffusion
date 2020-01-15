@@ -1,5 +1,6 @@
 CC = mpiCC
-CCOPT = -c -DNDEBUG -O3 -funroll-loops -I ../common_lib
+# MD added optimization options
+CCOPT = -c -DNDEBUG -O3 -funroll-loops -I ../common_lib    -march=native
 LINKOPT = -L ../common_lib -L ../libmfree
 LIBRARIES = -lcommon_lib -llibmfree  -lm
 

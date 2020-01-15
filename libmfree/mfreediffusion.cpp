@@ -2,6 +2,10 @@
 
 #include "../mygsl/gsl_linalg.h"
 #include <mpi.h>
+#include <iostream>
+
+#include <vector>
+#include <algorithm>
 
 namespace mfree
 {
@@ -511,6 +515,38 @@ double CQuadPointsWeights::quadPoints13[]  = {0.02544604382862, 0.12923440720030
 double CQuadPointsWeights::quadWeights13[] = {0.06474248307573, 0.13985269574744, 0.19091502525638, 0.20897959184091, 0.19091502525638, 0.13985269574744, 0.06474248307573};
 
 
+void coutTable(CNodeTable& nodes, bool parentheses = true, bool commas = true) {
+	if (parentheses)
+		std::cout << "[";
+	
+	std::vector<int> nodeIndices(nodes.getNumElems());
+	for (size_t i = 0; i < nodes.getNumElems(); ++i) 
+		nodeIndices[i] = (nodes[i].index);
+	std::sort(nodeIndices.begin(), nodeIndices.end());
+	
+	for (size_t i = 0; i < nodeIndices.size(); ++i) {
+		std::cout << (i > 0 ? (commas ? ", " : " ") : "") << nodeIndices[i];
+	}
+	if (parentheses)
+		std::cout << "]";
+}
+
+
+void coutSupDomain(const char* supDomainType, int node, int qIndex, CNodeTable& supDomain, double domainSize) {
+	//std::cout << supDomainType << " support domain of size " << supDomain.getNumElems() << ", radius=" << domainSize << "[";
+	std::cout << supDomainType << " node " << node << " quad point " << qIndex << ": ";
+	coutTable(supDomain);
+	std::cout << "\n";
+}
+
+void coutSupDomain_m(const char* supDomainType, int node, int qIndex, CNodeTable& supDomain, double domainSize) {
+	//std::cout << supDomainType << ", ";
+	std::cout << node << ", " << qIndex << ", " << domainSize << ", ";
+	coutTable(supDomain, false, true);
+	std::cout << "\n";
+}
+
+
 void CMFreeDiffusion::constructSystem()
 //main part of program: constructs system matrices (A, B) & RHS vector (fstar)
 //
@@ -546,8 +582,14 @@ void CMFreeDiffusion::constructSystem()
 	A.initialize(numNodes, totalNumNodes, 40); //total matrix size is totalNumNodes x totalNumNodes;
 	B.initialize(numNodes, totalNumNodes, 40); //of those, numNodes lines will be allocated locally
 
+	// MD: debugging
+	supDomains.resize(numNodes);
+
 	for (int node = 0; node < numNodes; node++)
 	{
+		// MD: debugging, create 9 quadrature points for each node
+		supDomains[node].resize(gaussQuad.numQuadPoints);
+		
 		//for each node that is stored in this process:
 
 		if (nodesTable[node].distToClosest(subdomain) > 0)
@@ -564,7 +606,7 @@ void CMFreeDiffusion::constructSystem()
 				dirichletEquation;			//true iff !internalNodeEquation AND node is in Dirichlet boundary
 
 		//select the version to be used (1-3)
-		#define BOUNDARY_VERSION 2
+		#define BOUNDARY_VERSION 1
 
 		#if BOUNDARY_VERSION == 1 //dissertation version: Dirichlet conditions on all boundaries
 			if (nodesTable[node].boundary)
@@ -593,6 +635,7 @@ void CMFreeDiffusion::constructSystem()
 			//collocation in boundary nodes
 			fstar[nodesTable[node].index] = nodesTable[node].u; //value of BC is taken from inital value of node.u
 			supDomainDiameter = getSupDomain(nodesTable[node], supDomain);
+			//coutSupDomain("border", node, -1, supDomain, supDomainDiameter);
 			assert(supDomain.getNumElems() <= MAX_SUP_DOMAIN_COUNT);
 
 			//depending on type of BC, put the right value as contribution to matrix A
@@ -627,15 +670,18 @@ void CMFreeDiffusion::constructSystem()
 
 		} else {
 			//internal nodes: equation (3.22)
-
 			fstar[nodesTable[node].index] = 0; //no heat sources
-
+			
+			// support domain is found but is reduced to its radius in the following code
 			//calculate quadrature domain, no part of which can lie outside the global domain
 			if (options.constSupNodeCount()) {
 				CNodeTable supNodes;
 				quadDomainSize = options.betaQuad * getSupDomain(nodesTable[node], supNodes);
-			} else
+				//coutSupDomain("constant size internal", node, -1, supNodes, quadDomainSize);
+			} else {
 				quadDomainSize = options.alphaQuad * avgDistMesh.interpolateAvgDist(nodesTable[node]);
+				//coutSupDomain("interpolated internal", node, -1, nodesTable, quadDomainSize);
+			}
 			quadDomain.xMin = CommonLib::mmax(0.0, nodesTable[node].x - quadDomainSize/2);
 			quadDomain.xMax = CommonLib::mmin(1.0, nodesTable[node].x + quadDomainSize/2);
 			quadDomain.yMin = CommonLib::mmax(0.0, nodesTable[node].y - quadDomainSize/2);
@@ -645,11 +691,14 @@ void CMFreeDiffusion::constructSystem()
 			{
 				//find support nodes of all quadrature domain
 				quadSupDomain.emptyTable();
+				std::cerr << "pre-find support\n";
 				nodesTree.findNodesInCircle(nodesTable[node],
 						(options.alphaSupport + sqrt(2.0)*options.alphaQuad)*avgDistMesh.getMaxAvgDist(quadDomain),
 						quadSupDomain);
 			}
 
+			int quadraturePointIndex1 = 0;
+			int quadraturePointIndex2 = 0;
 			//integrate K and C within rectangle (but not in hole) by looping over quadrature points
 			//put corresponding values as contributions to A and B 
 			for (int ix = 0; ix < gaussQuad.numQuadPoints; ix++) 
@@ -706,6 +755,7 @@ void CMFreeDiffusion::constructSystem()
 				if (!CommonLib::isNaN(yMin1))
 					for (int iy = 0; iy < gaussQuad.numQuadPoints; iy++) 
 					{
+						quadraturePointIndex1++;
 						quadPoint.y = yMin1 + gaussQuad.quadPoints[iy]*(yMax1-yMin1);
 						//now quadPoint is fully defined
 
@@ -714,6 +764,9 @@ void CMFreeDiffusion::constructSystem()
 							supDomainDiameter = getSupDomain(quadPoint, supDomain, quadSupDomain);
 						else
 							supDomainDiameter = getSupDomain(quadPoint, supDomain);
+						//coutSupDomain_m("line1", node, quadraturePointIndex1, supDomain, supDomainDiameter);
+						supDomains[node][iy] = supDomain;
+						
 						assert(supDomain.getNumElems() <= MAX_SUP_DOMAIN_COUNT);
 
 						//calculate values of base f. and their derivatives
@@ -744,11 +797,14 @@ void CMFreeDiffusion::constructSystem()
 				if (!CommonLib::isNaN(yMin2))
 					for (int iy = 0; iy < gaussQuad.numQuadPoints; iy++) 
 					{
+						quadraturePointIndex2++;
 						quadPoint.y = yMin2 + gaussQuad.quadPoints[iy]*(yMax2-yMin2);
 						if (options.preFindQuadSupport)
 							supDomainDiameter = getSupDomain(quadPoint, supDomain, quadSupDomain);
 						else
 							supDomainDiameter = getSupDomain(quadPoint, supDomain);
+							
+						//coutSupDomain_m("line2", node, quadraturePointIndex2, supDomain, supDomainDiameter);
 
 						assert(supDomain.getNumElems() <= MAX_SUP_DOMAIN_COUNT);
 						calculatePhi(quadPoint, supDomain, supDomainDiameter, true, phi, phi_x, phi_y);
@@ -970,6 +1026,9 @@ void CMFreeDiffusion::exportSystem(char *filename) const
 		fprintf(f, "%s.fstar=[];\n", filename);
 		for (int i = 0; i < totalNumNodes; i++)
 			fprintf(f, "%s.fstar(%d)=%.15lf;\n", filename, i+1, wholefstar[i]);
+			
+		for (int i = 0; i < totalNumNodes; i++)
+			fprintf(f, "%s.sup_domain_debug(%d)=%d;\n", filename, i+1, (int)wholefstar[i]);
 		fclose(f);
 
 		//free mem
